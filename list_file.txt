@@ -1,0 +1,19 @@
+CREATE OR REPLACE FUNCTION SYS.LIST_FILES (v_directory_name IN VARCHAR2,lp_string IN VARCHAR2 default null)
+RETURN file_array pipelined AS
+lv_pattern VARCHAR2(1024);
+lv_ns VARCHAR2(1024);
+BEGIN
+ 
+SELECT max(directory_path)
+INTO lv_pattern
+FROM dba_directories
+WHERE directory_name = v_directory_name;
+ 
+SYS.DBMS_BACKUP_RESTORE.SEARCHFILES(lv_pattern, lv_ns); --magic happening here!!!
+ 
+FOR file_list IN (SELECT REPLACE(FNAME_KRBMSFT,lv_pattern || '/', '') AS file_name
+FROM X$KRBMSFT
+WHERE FNAME_KRBMSFT LIKE '%'|| NVL(lp_string, FNAME_KRBMSFT)||'%' ) LOOP
+PIPE ROW(file_list.file_name);
+END LOOP;
+END;
